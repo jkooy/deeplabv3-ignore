@@ -20,6 +20,7 @@ class SegmentationLosses(object):
 
     def CrossEntropyLoss(self, logit, target):
         n, c, h, w = logit.size()
+#         batch size, channel, height, width
         criterion = nn.CrossEntropyLoss(weight=self.weight, ignore_index=self.ignore_index,
                                         size_average=self.size_average)
         if self.cuda:
