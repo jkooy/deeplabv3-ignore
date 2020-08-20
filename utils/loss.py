@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class SegmentationLosses(object):
     def __init__(self, weight=None, size_average=True, batch_average=True, ignore_index=255, cuda=False):
@@ -10,11 +11,13 @@ class SegmentationLosses(object):
         self.cuda = cuda
 
     def build_loss(self, mode='ce'):
-        """Choices: ['ce' or 'focal']"""
+        """Choices: ['ce' or 'focal' or 'pw']"""
         if mode == 'ce':
             return self.CrossEntropyLoss
         elif mode == 'focal':
             return self.FocalLoss
+        elif mode == 'pw':
+            return self.pixel_wise_loss
         else:
             raise NotImplementedError
 
@@ -30,6 +33,22 @@ class SegmentationLosses(object):
 
         if self.batch_average:
             loss /= n
+
+        return loss
+
+    def pixel_wise_loss(self, logit, target):
+        n, c, h, w = logit.size()
+        #         batch size, channel, height, width
+
+
+        criterion = nn.CrossEntropyLoss(weight=self.weight, ignore_index=self.ignore_index,
+                                        size_average=self.size_average, reduce=False)
+        if self.cuda:
+            criterion = criterion.cuda()
+
+        # print(logit.size(), target.long().size())
+        loss = criterion(logit, target.long())
+
 
         return loss
 
