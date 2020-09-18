@@ -128,7 +128,7 @@ class Trainer(object):
             self.v_model.zero_grad()
             grads = torch.autograd.grad(l_f_v, (self_v_model.params()), create_graph=True)
             v_lr = args.lr * ((0.1 ** int(epoch >= 80)) * (0.1 ** int(epoch >= 100)))  # For ResNet32
-            v_model.update_params(lr_inner=v_lr, source_params=grads)
+            self.v_model.update_params(lr_inner=v_lr, source_params=grads)
             del grads
 
             # phase 2. pixel weights step
@@ -258,6 +258,9 @@ def main():
                         choices=['ce', 'focal', 'pw'],
                         help='loss func type (default: ce)')
     # training hyper params
+    parser.add_argument('--pattern', type=str, default='train',
+                        choices=['train', 'test'],
+                        help='train or test pattern)')
     parser.add_argument('--epochs', type=int, default=None, metavar='N',
                         help='number of epochs to train (default: auto)')
     parser.add_argument('--start_epoch', type=int, default=0,

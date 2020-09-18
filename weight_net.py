@@ -8,6 +8,7 @@ from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 from modeling.aspp import build_aspp
 from modeling.decoder import build_decoder
 from modeling.backbone import build_backbone
+from modeling.backbone import resnet, xception, drn, mobilenet
 
 def to_var(x, requires_grad=True):
     if torch.cuda.is_available():

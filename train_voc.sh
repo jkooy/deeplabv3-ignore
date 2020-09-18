@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=0,1,2,3 python train.py --pattern train --backbone resnet --lr 0.007 --workers 2 --use-sbd --epochs 50 --batch-size 8 --gpu-ids 0,1,2,3 --checkname deeplab-resnet-no-ignore --eval-interval 1 --dataset pascal
+CUDA_VISIBLE_DEVICES=0,1,2,3 python train.py --pattern train --backbone xception --lr 0.007 --workers 2 --use-sbd --epochs 50 --batch-size 8 --gpu-ids 0,1,2,3 --checkname deeplab-xception-no-ignore --eval-interval 1 --dataset pascal
