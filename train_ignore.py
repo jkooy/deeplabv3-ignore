@@ -105,8 +105,22 @@ class Trainer(object):
         # Clear start epoch if fine-tuning
         if args.ft:
             args.start_epoch = 0
+    
+    def build_model(self, args):
+        model = v_DeepLab(num_classes=self.nclass,
+                        backbone=args.backbone,
+                        output_stride=args.out_stride,
+                        sync_bn=args.sync_bn,
+                        freeze_bn=args.freeze_bn)
 
-    def training(self, epoch):
+        if torch.cuda.is_available():
+            model.cuda()
+            torch.backends.cudnn.benchmark = True
+
+        return model
+
+
+    def training(self, epoch, args):
         train_loss = 0.0
         val_loader_iter = iter(self.val_loader)
         self.model.train()
@@ -116,19 +130,21 @@ class Trainer(object):
             image, target = sample['image'], sample['label']
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
+            
+            
+            v_model = self.build_model(args).cuda()
+            v_model.load_state_dict(self.model.state_dict())
 
-            self.v_model.load_state_dict(self.model.state_dict())
 
-
-            output = self.v_model(image)
+            output = v_model(image)
             cost = self.criterion(output, target)
             cost_v = torch.reshape(cost, (-1, 1))
             v_lambda = self.vnet(cost_v.data)
             l_f_v = torch.sum(cost_v * v_lambda) / len(cost_v)
-            self.v_model.zero_grad()
+            v_model.zero_grad()
             grads = torch.autograd.grad(l_f_v, (self_v_model.params()), create_graph=True)
             v_lr = args.lr * ((0.1 ** int(epoch >= 80)) * (0.1 ** int(epoch >= 100)))  # For ResNet32
-            self.v_model.update_params(lr_inner=v_lr, source_params=grads)
+            v_model.update_params(lr_inner=v_lr, source_params=grads)
             del grads
 
             # phase 2. pixel weights step
@@ -141,7 +157,7 @@ class Trainer(object):
             inputs_val, targets_val = sample_val['image'], sample_val['label']
             if self.args.cuda:
                 inputs_val, targets_val = inputs_val.cuda(), targets_val.cuda()
-            y_g_hat = self.v_model(inputs_val)
+            y_g_hat = v_model(inputs_val)
             l_g_meta = self.valcriterion(y_g_hat, targets_val)
 
             self.optimizer_vnet.zero_grad()
@@ -352,7 +368,7 @@ def main():
     print('Starting Epoch:', trainer.args.start_epoch)
     print('Total Epoches:', trainer.args.epochs)
     for epoch in range(trainer.args.start_epoch, trainer.args.epochs):
-        trainer.training(epoch)
+        trainer.training(epoch, args)
         if not trainer.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
             trainer.validation(epoch)
 
